@@ -59,6 +59,10 @@ public class DatabaseEngine
 
                 preparedStatement = connection.prepareStatement(query);
                 preparedStatement.execute();
+
+                query = "CREATE TABLE IF NOT EXISTS `notices_udv` (`id` int(11) NOT NULL AUTO_INCREMENT,`notice_id` int(11) NOT NULL,`uuid` varchar(36) NOT NULL,`seen` int(1) NOT NULL,`dismissed` int(1) NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1";
+                preparedStatement = connection.prepareStatement(query);
+                preparedStatement.execute();
             } catch(SQLException e) {
                 System.out.println(Core.PREFIX + ": Error when creating tables.");
                 e.printStackTrace();

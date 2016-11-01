@@ -175,6 +175,11 @@ public class Notice
         return dismissible;
     }
 
+    public void addView()
+    {
+        views += 1;
+    }
+
     /**
      * Notice$Type
      */

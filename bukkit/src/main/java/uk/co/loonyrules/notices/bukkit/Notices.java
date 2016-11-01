@@ -11,9 +11,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import uk.co.loonyrules.notices.api.MiniNotice;
 import uk.co.loonyrules.notices.api.Notice;
 import uk.co.loonyrules.notices.api.NoticeAPI;
 import uk.co.loonyrules.notices.api.NoticePlayer;
+import uk.co.loonyrules.notices.bukkit.command.NoticeCommand;
 import uk.co.loonyrules.notices.bukkit.utils.ChatUtil;
 import uk.co.loonyrules.notices.core.Core;
 import uk.co.loonyrules.notices.core.database.DatabaseEngine;
@@ -51,6 +53,7 @@ public class Notices extends JavaPlugin implements Core, Runnable, Listener
         // Load from Database every 30 seconds because of expiration.
         Bukkit.getScheduler().runTaskTimerAsynchronously(this, this, 0L, 20 * 30L);
 
+        getCommand("notice").setExecutor(new NoticeCommand(api));
         Bukkit.getPluginManager().registerEvents(this, this);
     }
 
@@ -90,19 +93,35 @@ public class Notices extends JavaPlugin implements Core, Runnable, Listener
             if(notices.size() == 0)
                 return;
 
-            player.sendMessage(Core.DIVIDER);
-            notices.forEach(notice -> notice.getMessages().forEach(message ->
+            notices.forEach(notice ->
             {
-                TextComponent base = ChatUtil.textComponent("");
-                TextComponent interact = notice.isDismissible() ? ChatUtil.runCommandHover(DISMISS, "§eClick to dismiss this notice.", "/notice dismiss " + notice.getId()) : ChatUtil.hover(DISMISS, "§eNotice cannot be dismissed.");
-                TextComponent fm = ChatUtil.uri(ChatColor.translateAlternateColorCodes('&', message));
+                player.sendMessage(Core.DIVIDER);
 
-                base.addExtra(interact);
-                base.addExtra(fm);
+                notice.getMessages().forEach(message ->
+                {
+                    TextComponent base = ChatUtil.textComponent("");
+                    TextComponent interact = notice.isDismissible() ? ChatUtil.runCommandHover(DISMISS, "§eClick to dismiss this notice.", "/notice dismiss " + notice.getId()) : ChatUtil.hover(DISMISS, "§eNotice cannot be dismissed.");
+                    TextComponent fm = ChatUtil.uri(ChatColor.translateAlternateColorCodes('&', message));
 
-                player.spigot().sendMessage(base);
-            }));
-            player.sendMessage(Core.DIVIDER);
+                    base.addExtra(interact);
+                    base.addExtra(fm);
+
+                    player.spigot().sendMessage(base);
+                });
+
+                MiniNotice miniNotice = noticePlayer.getNotice(notice.getId());
+                notice.addView();
+
+                if(miniNotice == null)
+                {
+                    miniNotice = new MiniNotice(notice.getId(), player.getUniqueId(), true, false);
+                    noticePlayer.addNotice(miniNotice);
+                    api.updatePlayer(miniNotice);
+                }
+                api.updateNotice(notice);
+                player.sendMessage(Core.DIVIDER);
+            });
+
         });
     }
 

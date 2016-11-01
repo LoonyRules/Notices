@@ -48,7 +48,33 @@ public class NoticeAPI
         if(noticePlayer != null)
             return noticePlayer;
 
-        noticePlayer = new NoticePlayer(uuid);
+        Connection connection = null;
+        PreparedStatement preparedStatement = null;
+        ResultSet resultSet = null;
+
+        String QUERY = "SELECT * FROM `notices_udv` WHERE uuid=?";
+
+        try {
+            connection = core.getDatabaseEngine().getHikariCP().getConnection();
+
+            preparedStatement = connection.prepareStatement(QUERY);
+            preparedStatement.setString(1, uuid.toString());
+            preparedStatement.execute();
+
+            noticePlayer = new NoticePlayer(uuid, resultSet = preparedStatement.getResultSet());
+        } catch(SQLException e) {
+            System.out.println(Core.PREFIX + ": Error when loading NoticePlayer from the database.");
+            e.printStackTrace();
+        } finally {
+            try {
+                if(connection != null) connection.close();
+                if(preparedStatement != null) preparedStatement.close();
+                if(resultSet != null) resultSet.close();
+            } catch(SQLException e) {
+                System.out.println(Core.PREFIX + ": Error when closing connections.");
+                e.printStackTrace();
+            }
+        }
 
         if(toSave)
             player.putIfAbsent(uuid, noticePlayer);
@@ -59,6 +85,59 @@ public class NoticeAPI
     public void removePlayer(UUID uuid)
     {
         player.remove(uuid);
+    }
+
+    public void updatePlayer(MiniNotice miniNotice)
+    {
+        Connection connection = null;
+        PreparedStatement preparedStatement = null;
+        ResultSet resultSet = null;
+
+        String QUERY = "SELECT * FROM `notices_udv` WHERE notice_id=? AND uuid=?";
+        String UPDATE = "UPDATE `notices_udv` SET seen=?, dismissed=? WHERE notice_id=? AND uuid=?";
+        String INSERT = "INSERT INTO `notices_udv` (`notice_id`, `uuid`, `seen`, `dismissed`) VALUES (?, ?, ?, ?)";
+
+        try {
+            connection = core.getDatabaseEngine().getHikariCP().getConnection();
+
+            preparedStatement = connection.prepareStatement(QUERY);
+            preparedStatement.setInt(1, miniNotice.getId());
+            preparedStatement.setString(2, miniNotice.getUUID().toString());
+            preparedStatement.execute();
+
+            resultSet = preparedStatement.getResultSet();
+
+            if(resultSet.next())
+            {
+                // update
+                preparedStatement = connection.prepareStatement(UPDATE);
+                preparedStatement.setInt(1, miniNotice.hasSeen() ? 1 : 0);
+                preparedStatement.setInt(2, miniNotice.hasDismissed() ? 1 : 0);
+                preparedStatement.setInt(3, miniNotice.getId());
+                preparedStatement.setString(4, miniNotice.getUUID().toString());
+                preparedStatement.execute();
+            } else {
+                // insert
+                preparedStatement = connection.prepareStatement(INSERT);
+                preparedStatement.setInt(1, miniNotice.getId());
+                preparedStatement.setString(2, miniNotice.getUUID().toString());
+                preparedStatement.setInt(3, miniNotice.hasSeen() ? 1 : 0);
+                preparedStatement.setInt(4, miniNotice.hasDismissed() ? 1 : 0);
+                preparedStatement.execute();
+            }
+        } catch(SQLException e) {
+            System.out.println(Core.PREFIX + ": Error when saving MiniNotice to the database.");
+            e.printStackTrace();
+        } finally {
+            try {
+                if(connection != null) connection.close();
+                if(preparedStatement != null) preparedStatement.close();
+                if(resultSet != null) resultSet.close();
+            } catch(SQLException e) {
+                System.out.println(Core.PREFIX + ": Error when closing connections.");
+                e.printStackTrace();
+            }
+        }
     }
 
     public Collection<Notice> getNotices()
@@ -73,16 +152,6 @@ public class NoticeAPI
 
     public Collection<Notice> getNotices(UUID uuid, NoticePlayer noticePlayer)
     {
-//        getNotices().forEach(notice1 ->
-//        {
-//            System.out.println("#" + notice1.getId());
-//                System.out.println(" type: " + notice1.getType());
-//                System.out.println(" ur:");
-//                    notice1.getUUIDRecipients().forEach(uuid1 -> System.out.println("  - " + uuid1.toString()));
-//                System.out.println(" contains: " + (notice1.getUUIDRecipients().contains(uuid)));
-//                System.out.println(" second: " + (noticePlayer.getNotice(notice1.getId()) == null || !noticePlayer.getNotice(notice1.getId()).hasDismissed()));
-//        });
-
         return getNotices().stream().filter(notice ->
                 (notice.getType() == Notice.Type.ALL
                         ? (noticePlayer.getNotice(notice.getId()) == null || !noticePlayer.getNotice(notice.getId()).hasDismissed())
@@ -152,8 +221,6 @@ public class NoticeAPI
                 if(connection != null) connection.close();
                 if(preparedStatement != null) preparedStatement.close();
                 if(resultSet != null) resultSet.close();
-
-                System.out.println(Core.PREFIX + ": Loading Notices was successful.");
             } catch(SQLException e) {
                 System.out.println(Core.PREFIX + ": Error when closing connections.");
                 e.printStackTrace();
@@ -200,8 +267,6 @@ public class NoticeAPI
                 if(connection != null) connection.close();
                 if(preparedStatement != null) preparedStatement.close();
                 if(resultSet != null) resultSet.close();
-
-                System.out.println(Core.PREFIX + ": Loading Notices was successful.");
             } catch(SQLException e) {
                 System.out.println(Core.PREFIX + ": Error when closing connections.");
                 e.printStackTrace();
