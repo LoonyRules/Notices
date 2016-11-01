@@ -38,16 +38,6 @@ public class Notice
     private List<UUID> uuidRecipients = new ArrayList<>();
 
     /**
-     * List of dismissed UUID's.
-     */
-    private List<UUID> dismissed = new ArrayList<>();
-
-    /**
-     * List of viewer UUID's.
-     */
-    private List<UUID> viewers = new ArrayList<>();
-
-    /**
      * Notice type.
      */
     private Type type = Type.ALL;
@@ -71,8 +61,11 @@ public class Notice
         String rawMessages = resultSet.getString("messages");
         this.messages = Arrays.asList(rawMessages.substring(1, rawMessages.length() -1).split(", "));
 
-        // TODO: uuidRecipients, dismissed, viewers and type
+        String rawUR = resultSet.getString("uuidRecipients");
+        if(!(rawUR.isEmpty() || rawUR.length() == 0 || rawUR.equals("[]")))
+            Arrays.asList(rawUR.substring(1, rawUR.length() -1).split(", ")).forEach(uuid -> uuidRecipients.add(UUID.fromString(uuid)));
 
+        this.type = Type.valueOf(resultSet.getString("type"));
         this.expiration = Long.parseLong(resultSet.getInt("expiration") + "");
         this.dismissible = resultSet.getInt("dismissible") == 1;
     }
@@ -153,24 +146,6 @@ public class Notice
     public List<UUID> getUUIDRecipients()
     {
         return uuidRecipients;
-    }
-
-    /**
-     * Get the dismissed UUIDs.
-     * @return UUIDs of those who have dismissed this Notice.
-     */
-    public List<UUID> getDismissed()
-    {
-        return dismissed;
-    }
-
-    /**
-     * Get the UUIDs of every viewer.
-     * @return UUIDs of those who have viewed this Notice.
-     */
-    public List<UUID> getViewers()
-    {
-        return viewers;
     }
 
     /**

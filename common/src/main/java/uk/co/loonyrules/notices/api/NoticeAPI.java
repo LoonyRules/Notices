@@ -22,6 +22,7 @@ public class NoticeAPI
 
     private final Core core;
     private final ConcurrentMap<Integer, Notice> notices = new ConcurrentHashMap<>();
+    private final ConcurrentMap<UUID, NoticePlayer> player = new ConcurrentHashMap<>();
     private final EventManager eventManager;
 
     public NoticeAPI(Core core)
@@ -35,6 +36,31 @@ public class NoticeAPI
         return core;
     }
 
+    public NoticePlayer getPlayer(UUID uuid)
+    {
+        return player.get(uuid);
+    }
+
+    public NoticePlayer cachePlayer(UUID uuid, boolean toSave)
+    {
+        NoticePlayer noticePlayer = getPlayer(uuid);
+
+        if(noticePlayer != null)
+            return noticePlayer;
+
+        noticePlayer = new NoticePlayer(uuid);
+
+        if(toSave)
+            player.putIfAbsent(uuid, noticePlayer);
+
+        return noticePlayer;
+    }
+
+    public void removePlayer(UUID uuid)
+    {
+        player.remove(uuid);
+    }
+
     public Collection<Notice> getNotices()
     {
         return notices.values();
@@ -42,7 +68,27 @@ public class NoticeAPI
 
     public Collection<Notice> getNotices(UUID uuid)
     {
-        return getNotices().stream().filter(notice -> (notice.getType() == Notice.Type.ALL && notice.isDismissible() && !notice.getDismissed().contains(uuid))).collect(Collectors.toList());
+        return getNotices(uuid, player.get(uuid));
+    }
+
+    public Collection<Notice> getNotices(UUID uuid, NoticePlayer noticePlayer)
+    {
+//        getNotices().forEach(notice1 ->
+//        {
+//            System.out.println("#" + notice1.getId());
+//                System.out.println(" type: " + notice1.getType());
+//                System.out.println(" ur:");
+//                    notice1.getUUIDRecipients().forEach(uuid1 -> System.out.println("  - " + uuid1.toString()));
+//                System.out.println(" contains: " + (notice1.getUUIDRecipients().contains(uuid)));
+//                System.out.println(" second: " + (noticePlayer.getNotice(notice1.getId()) == null || !noticePlayer.getNotice(notice1.getId()).hasDismissed()));
+//        });
+
+        return getNotices().stream().filter(notice ->
+                (notice.getType() == Notice.Type.ALL
+                        ? (noticePlayer.getNotice(notice.getId()) == null || !noticePlayer.getNotice(notice.getId()).hasDismissed())
+                        : (notice.getType() == Notice.Type.INDIVIDUAL && (notice.getUUIDRecipients().contains(uuid) && (noticePlayer.getNotice(notice.getId()) == null || !noticePlayer.getNotice(notice.getId()).hasDismissed())))
+                )
+        ).collect(Collectors.toList());
     }
 
     public Notice getNotice(int id)

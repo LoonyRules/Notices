@@ -1,5 +1,6 @@
 package uk.co.loonyrules.notices.bukkit;
 
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -8,9 +9,12 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import uk.co.loonyrules.notices.api.Notice;
 import uk.co.loonyrules.notices.api.NoticeAPI;
+import uk.co.loonyrules.notices.api.NoticePlayer;
+import uk.co.loonyrules.notices.bukkit.utils.ChatUtil;
 import uk.co.loonyrules.notices.core.Core;
 import uk.co.loonyrules.notices.core.database.DatabaseEngine;
 
@@ -78,14 +82,35 @@ public class Notices extends JavaPlugin implements Core, Runnable, Listener
     {
         final Player player = event.getPlayer();
 
-        Collection<Notice> notices = api.getNotices(player.getUniqueId());
+        DatabaseEngine.getPool().execute(() ->
+        {
+            NoticePlayer noticePlayer = api.cachePlayer(player.getUniqueId(), true);
+            Collection<Notice> notices = api.getNotices(player.getUniqueId(), noticePlayer);
 
-        if(notices.size() == 0)
-            return;
+            if(notices.size() == 0)
+                return;
 
-        player.sendMessage("§aYou have §e" + notices.size() + " §ato view.");
+            player.sendMessage(Core.DIVIDER);
+            notices.forEach(notice -> notice.getMessages().forEach(message ->
+            {
+                TextComponent base = ChatUtil.textComponent("");
+                TextComponent interact = notice.isDismissible() ? ChatUtil.runCommandHover(DISMISS, "§eClick to dismiss this notice.", "/notice dismiss " + notice.getId()) : ChatUtil.hover(DISMISS, "§eNotice cannot be dismissed.");
+                TextComponent fm = ChatUtil.uri(ChatColor.translateAlternateColorCodes('&', message));
 
-        notices.forEach(notice -> notice.getMessages().forEach(message -> player.sendMessage(ChatColor.translateAlternateColorCodes('&', message))));
+                base.addExtra(interact);
+                base.addExtra(fm);
+
+                player.spigot().sendMessage(base);
+            }));
+            player.sendMessage(Core.DIVIDER);
+        });
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerQuitEvent(PlayerQuitEvent event)
+    {
+        final Player player = event.getPlayer();
+        api.removePlayer(player.getUniqueId());
     }
 
 }
