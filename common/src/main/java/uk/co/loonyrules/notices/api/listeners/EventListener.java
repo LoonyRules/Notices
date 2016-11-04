@@ -10,6 +10,7 @@ public abstract class EventListener implements ListenerHook
     public void onNoticeRemoveEvent(NoticeRemoveEvent event) {}
     public void onNoticeUpdateEvent(NoticeUpdateEvent event) {}
     public void onNoticeSaveEvent(NoticeSaveEvent event) {}
+    public void onNoticePermCheckEvent(NoticePermCheckEvent event) {}
 
     @Override
     public void onEvent(Event event)
@@ -22,6 +23,8 @@ public abstract class EventListener implements ListenerHook
             onNoticeUpdateEvent((NoticeUpdateEvent) event);
         else if(event instanceof NoticeSaveEvent)
             onNoticeSaveEvent((NoticeSaveEvent) event);
+        else if(event instanceof NoticePermCheckEvent)
+            onNoticePermCheckEvent((NoticePermCheckEvent) event);
     }
 
 }

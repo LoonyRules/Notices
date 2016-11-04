@@ -36,6 +36,11 @@ public class Notice
     private List<UUID> uuidRecipients = new ArrayList<>();
 
     /**
+     * Permission if Type.PERM
+     */
+    private String perm = "";
+
+    /**
      * Notice type.
      */
     private Type type = Type.ALL;
@@ -63,6 +68,7 @@ public class Notice
         if(!(rawUR.isEmpty() || rawUR.length() == 0 || rawUR.equals("[]")))
             Arrays.asList(rawUR.substring(1, rawUR.length() -1).split(", ")).forEach(uuid -> uuidRecipients.add(UUID.fromString(uuid)));
 
+        this.perm = resultSet.getString("perm");
         this.type = Type.valueOf(resultSet.getString("type"));
         this.expiration = Long.parseLong(resultSet.getInt("expiration") + "");
         this.dismissible = resultSet.getInt("dismissible") == 1;
@@ -168,6 +174,11 @@ public class Notice
         return expiration;
     }
 
+    public String getPerm()
+    {
+        return perm;
+    }
+
     /**
      * Get whether Notice is dismissible.
      * @return is dismissible.
@@ -175,6 +186,11 @@ public class Notice
     public boolean isDismissible()
     {
         return dismissible;
+    }
+
+    public void setPerm(String perm)
+    {
+        this.perm = perm;
     }
 
     public void addView()

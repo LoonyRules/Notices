@@ -16,7 +16,9 @@ import uk.co.loonyrules.notices.api.MiniNotice;
 import uk.co.loonyrules.notices.api.Notice;
 import uk.co.loonyrules.notices.api.NoticeAPI;
 import uk.co.loonyrules.notices.api.NoticePlayer;
+import uk.co.loonyrules.notices.api.listeners.EventListener;
 import uk.co.loonyrules.notices.bukkit.command.NoticeCommand;
+import uk.co.loonyrules.notices.bukkit.listener.PermListener;
 import uk.co.loonyrules.notices.bukkit.utils.ChatUtil;
 import uk.co.loonyrules.notices.core.Core;
 import uk.co.loonyrules.notices.core.database.DatabaseEngine;
@@ -29,6 +31,7 @@ public class Notices extends JavaPlugin implements Core, Runnable, Listener
 
     private static NoticeAPI api;
 
+    private PermListener permListener;
     private DatabaseEngine databaseEngine;
     private String serverName;
 
@@ -50,6 +53,7 @@ public class Notices extends JavaPlugin implements Core, Runnable, Listener
 
         api = new NoticeAPI(this);
         api.loadNotices();
+        api.addEventListener(permListener = new PermListener());
 
         // Load from Database every 30 seconds because of expiration.
         Bukkit.getScheduler().runTaskTimerAsynchronously(this, this, 0L, 20 * 30L);

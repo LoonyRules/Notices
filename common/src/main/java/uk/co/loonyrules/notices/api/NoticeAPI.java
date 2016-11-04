@@ -1,15 +1,13 @@
 package uk.co.loonyrules.notices.api;
 
-import uk.co.loonyrules.notices.api.events.NoticeAddEvent;
-import uk.co.loonyrules.notices.api.events.NoticeRemoveEvent;
-import uk.co.loonyrules.notices.api.events.NoticeSaveEvent;
-import uk.co.loonyrules.notices.api.events.NoticeUpdateEvent;
+import uk.co.loonyrules.notices.api.events.*;
 import uk.co.loonyrules.notices.api.hooks.EventManager;
 import uk.co.loonyrules.notices.api.util.Callback;
 import uk.co.loonyrules.notices.core.Core;
 
 import java.sql.*;
 import java.util.Collection;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -167,12 +165,26 @@ public class NoticeAPI
 
     public Collection<Notice> getNotices(UUID uuid, NoticePlayer noticePlayer)
     {
-        return getNotices().stream().filter(notice ->
+        List<Notice> returning =  getNotices().stream().filter(notice ->
                 (notice.getType() == Notice.Type.ALL
                         ? (noticePlayer.getNotice(notice.getId()) == null || !noticePlayer.getNotice(notice.getId()).hasDismissed())
                         : (notice.getType() == Notice.Type.INDIVIDUAL && (notice.getUUIDRecipients().contains(uuid) && (noticePlayer.getNotice(notice.getId()) == null || !noticePlayer.getNotice(notice.getId()).hasDismissed())))
                 )
         ).collect(Collectors.toList());
+
+        getNotices().stream().filter(notice -> !returning.contains(notice)).forEach(notice ->
+        {
+            if(notice.getType() == Notice.Type.PERM)
+            {
+                NoticePermCheckEvent event = new NoticePermCheckEvent(this, notice, uuid);
+                eventManager.handle(event);
+
+                if(!event.isCancelled())
+                    returning.add(notice);
+            }
+        });
+
+        return returning;
     }
 
     public Notice getNotice(int id) throws NoSuchElementException
@@ -217,8 +229,8 @@ public class NoticeAPI
         ResultSet resultSet = null;
 
         String QUERY = "SELECT * FROM `notices` WHERE id=?";
-        String UPDATE = "UPDATE `notices` SET views=?, messages=?, uuidRecipients=?, type=?, expiration=?, dismissible=? WHERE id=? AND creator=?";
-        String INSERT = "INSERT INTO `notices` (`views`, `creator`, `messages`, `uuidRecipients`, `type`, `expiration`, `dismissible`) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String UPDATE = "UPDATE `notices` SET views=?, messages=?, uuidRecipients=?, perm=?, type=?, expiration=?, dismissible=? WHERE id=? AND creator=?";
+        String INSERT = "INSERT INTO `notices` (`views`, `creator`, `messages`, `uuidRecipients`, `perm`, `type`, `expiration`, `dismissible`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         try {
             connection = core.getDatabaseEngine().getHikariCP().getConnection();
@@ -236,11 +248,12 @@ public class NoticeAPI
                 preparedStatement.setInt(1, notice.getViews());
                 preparedStatement.setString(2, notice.getMessages().toString());
                 preparedStatement.setString(3, notice.getUUIDRecipients().toString());
-                preparedStatement.setString(4, notice.getType().toString());
-                preparedStatement.setLong(5, notice.getExpiration());
-                preparedStatement.setInt(6, notice.isDismissible() ? 1 : 0);
-                preparedStatement.setInt(7, notice.getId());
-                preparedStatement.setString(8, notice.getCreator().toString());
+                preparedStatement.setString(4, notice.getPerm());
+                preparedStatement.setString(5, notice.getType().toString());
+                preparedStatement.setLong(6, notice.getExpiration());
+                preparedStatement.setInt(7, notice.isDismissible() ? 1 : 0);
+                preparedStatement.setInt(8, notice.getId());
+                preparedStatement.setString(9, notice.getCreator().toString());
                 preparedStatement.execute();
 
                 notice = updateNotice(notice);
@@ -251,9 +264,10 @@ public class NoticeAPI
                 preparedStatement.setString(2, notice.getCreator().toString());
                 preparedStatement.setString(3, notice.getMessages().toString());
                 preparedStatement.setString(4, notice.getUUIDRecipients().toString());
-                preparedStatement.setString(5, notice.getType().toString());
-                preparedStatement.setLong(6, notice.getExpiration());
-                preparedStatement.setInt(7, notice.isDismissible() ? 1 : 0);
+                preparedStatement.setString(5, notice.getPerm());
+                preparedStatement.setString(6, notice.getType().toString());
+                preparedStatement.setLong(7, notice.getExpiration());
+                preparedStatement.setInt(8, notice.isDismissible() ? 1 : 0);
                 preparedStatement.execute();
 
                 preparedStatement = connection.prepareStatement("SELECT LAST_INSERT_ID();");

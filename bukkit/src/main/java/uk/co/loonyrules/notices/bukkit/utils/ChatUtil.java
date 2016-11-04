@@ -84,13 +84,19 @@ public class ChatUtil
         OfflinePlayer op = Bukkit.getOfflinePlayer(notice.getCreator());
         sender.sendMessage(" §7» §6Creator: §e" + (op != null && op.hasPlayedBefore() && op.getName() != null ? op.getName() : notice.getCreator().toString()));
         sender.sendMessage(" §7» §6Expiration: §e" + new Date((notice.getExpiration() * 1000)).toLocaleString() + " (" + Parse.dateDiff(System.currentTimeMillis(), (notice.getExpiration() * 1000)) + ")");
-        sender.sendMessage(" §7» §6UUID recipients: §e" + (notice.getType() == Notice.Type.ALL ? "Anyone" : ""));
 
         if(notice.getType() == Notice.Type.INDIVIDUAL)
-            notice.getUUIDRecipients().forEach(uuid -> {
-                OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(notice.getCreator());
-                sender.sendMessage("   §7• §e" + (offlinePlayer != null && offlinePlayer.hasPlayedBefore() && offlinePlayer.getName() != null ? offlinePlayer.getName() : notice.getCreator().toString()));
-            });
+        {
+            sender.sendMessage(" §7» §6UUID recipients: §e" + (notice.getType() == Notice.Type.ALL ? "Anyone" : ""));
+
+            if(notice.getType() == Notice.Type.INDIVIDUAL)
+                notice.getUUIDRecipients().forEach(uuid -> {
+                    OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(notice.getCreator());
+                    sender.sendMessage("   §7• §e" + (offlinePlayer != null && offlinePlayer.hasPlayedBefore() && offlinePlayer.getName() != null ? offlinePlayer.getName() : notice.getCreator().toString()));
+                });
+
+        } else if(notice.getType() == Notice.Type.PERM)
+            sender.sendMessage(" §7» §6Permission: §e" + notice.getPerm());
 
         sender.sendMessage(Core.DIVIDER);
     }

@@ -52,7 +52,7 @@ public class DatabaseEngine
             Connection connection = null;
             PreparedStatement preparedStatement = null;
             ResultSet resultSet = null;
-            String query = "CREATE TABLE IF NOT EXISTS `notices` (`id` int(11) NOT NULL AUTO_INCREMENT, `views` int(11) NOT NULL, `creator` varchar(36) NOT NULL, `messages` longtext NOT NULL, `uuidRecipients` longtext NOT NULL, `dismissed` longtext NOT NULL, `viewers` longtext NOT NULL, `type` text NOT NULL, `expiration` bigint(20) NOT NULL, `dismissible` int(1) NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=latin1";
+            String query = "CREATE TABLE IF NOT EXISTS `notices` (`id` int(11) NOT NULL AUTO_INCREMENT,`views` int(11) NOT NULL,`creator` varchar(36) NOT NULL,`messages` longtext NOT NULL,`uuidRecipients` longtext NOT NULL,`perm` varchar(32) NOT NULL,`type` text NOT NULL,`expiration` bigint(20) NOT NULL,`dismissible` int(1) NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=latin1";
 
             try {
                 connection = hikariCP.getConnection();
@@ -60,7 +60,7 @@ public class DatabaseEngine
                 preparedStatement = connection.prepareStatement(query);
                 preparedStatement.execute();
 
-                query = "CREATE TABLE IF NOT EXISTS `notices_udv` (`id` int(11) NOT NULL AUTO_INCREMENT,`notice_id` int(11) NOT NULL,`uuid` varchar(36) NOT NULL,`seen` int(1) NOT NULL,`dismissed` int(1) NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1";
+                query = "CREATE TABLE IF NOT EXISTS `notices_udv` (`id` int(11) NOT NULL AUTO_INCREMENT,`notice_id` int(11) NOT NULL,`uuid` varchar(36) NOT NULL,`seen` int(1) NOT NULL,`dismissed` int(1) NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=latin1 ";
                 preparedStatement = connection.prepareStatement(query);
                 preparedStatement.execute();
             } catch(SQLException e) {

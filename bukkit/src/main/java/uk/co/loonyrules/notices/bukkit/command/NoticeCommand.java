@@ -160,6 +160,11 @@ public class NoticeCommand implements CommandExecutor
                 }
 
                 player.sendMessage(sb.toString().replaceAll(", $", ""));
+            } else if(notice.getType() == Notice.Type.PERM) {
+                String perm = typeString.split(":")[1];
+                notice.setPerm(perm);
+
+                player.sendMessage("§aAdded permission §e" + perm + " §ato notice.");
             }
 
             player.sendMessage("§aPlease type the notice message in chat. Type CANCEL to cancel the creation and SAVE to save.");
@@ -179,19 +184,23 @@ public class NoticeCommand implements CommandExecutor
 
             int id = Parse.toInt(args[1]);
 
-            Notice notice = api.getNotice(id);
+            try {
+                Notice notice = api.getNotice(id);
 
-            if(notice == null)
-            {
-                sender.sendMessage("§cNotice with the id §e" + id + " §cdoesn't exist or isn't active.");
-                return true;
+                if(notice == null)
+                {
+                    sender.sendMessage("§cNotice with the id §e" + id + " §cdoesn't exist or isn't active.");
+                    return true;
+                }
+
+                DatabaseEngine.getPool().execute(() ->
+                {
+                    api.deleteNotice(notice);
+                    sender.sendMessage("§cDeleted notice #" + notice.getId());
+                });
+            } catch(NoSuchElementException e) {
+                sender.sendMessage("§cNotice #" + args[1] + " doesn't exist or isn't active.");
             }
-
-            DatabaseEngine.getPool().execute(() ->
-            {
-                api.deleteNotice(notice);
-                sender.sendMessage("§cDeleted notice #" + notice.getId());
-            });
         } else if(args[0].equalsIgnoreCase("info")) {
             if(!(sender.hasPermission(Permission.CMD_NOTICE_INFO)))
             {
