@@ -1,5 +1,5 @@
 # Notices
-A Bukkit/BungeeCord notification system. Making life easier one notification at a time.
+Send a dismissible notice to specific players on your server/proxy.
 
 ### Downloads
 
