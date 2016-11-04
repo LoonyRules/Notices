@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -81,6 +82,41 @@ public class Notices extends JavaPlugin implements Core, Runnable, Listener
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
+    public void onAsyncPlayerChatEvent(AsyncPlayerChatEvent event)
+    {
+        final Player player = event.getPlayer();
+
+        Notice notice = api.getCreation(player.getUniqueId());
+
+        if(notice == null)
+            return;
+
+        event.setCancelled(true);
+
+        if(event.getMessage().toLowerCase().equals("cancel"))
+        {
+            api.removeCreation(player.getUniqueId());
+            player.sendMessage("§aNotice creation has been cancelled. You can type normally now.");
+            return;
+        } else if(event.getMessage().toLowerCase().equals("save")) {
+            DatabaseEngine.getPool().execute(() ->
+            {
+                Notice updated = api.saveNotice(notice);
+
+                player.sendMessage("§aSaved notice to the database with the following data:");
+                ChatUtil.printNoticeInfo(player, updated);
+            });
+
+            api.removeCreation(player.getUniqueId());
+            return;
+        }
+
+        notice.addMessage(event.getMessage());
+        player.sendMessage("§aAdded the following message to your notice creation.");
+        player.sendMessage(ChatColor.translateAlternateColorCodes('&', event.getMessage()));
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerJoinEvent(PlayerJoinEvent event)
     {
         final Player player = event.getPlayer();
@@ -109,8 +145,10 @@ public class Notices extends JavaPlugin implements Core, Runnable, Listener
                     player.spigot().sendMessage(base);
                 });
 
-                MiniNotice miniNotice = noticePlayer.getNotice(notice.getId());
                 notice.addView();
+                api.saveNotice(notice);
+
+                MiniNotice miniNotice = noticePlayer.getNotice(notice.getId());
 
                 if(miniNotice == null)
                 {
@@ -118,7 +156,7 @@ public class Notices extends JavaPlugin implements Core, Runnable, Listener
                     noticePlayer.addNotice(miniNotice);
                     api.updatePlayer(miniNotice);
                 }
-                api.updateNotice(notice);
+
                 player.sendMessage(Core.DIVIDER);
             });
 

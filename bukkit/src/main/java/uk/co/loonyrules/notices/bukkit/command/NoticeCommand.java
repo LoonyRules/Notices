@@ -9,10 +9,12 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import uk.co.loonyrules.notices.api.*;
 import uk.co.loonyrules.notices.api.util.Parse;
+import uk.co.loonyrules.notices.bukkit.utils.ChatUtil;
 import uk.co.loonyrules.notices.core.Core;
 import uk.co.loonyrules.notices.core.database.DatabaseEngine;
 
 import java.util.Date;
+import java.util.NoSuchElementException;
 
 public class NoticeCommand implements CommandExecutor
 {
@@ -59,43 +61,137 @@ public class NoticeCommand implements CommandExecutor
                 return true;
             }
 
-            int id = Parse.toInt(args[1]);
+            try {
+                int id = Parse.toInt(args[1]);
 
-            if(id< 0)
-            {
+                Notice notice = api.getNotice(id);
+                NoticePlayer noticePlayer = api.getPlayer(player.getUniqueId());
+
+                if(notice == null || noticePlayer == null || !api.getNotices().contains(notice) || (noticePlayer.getNotice(id) != null && noticePlayer.getNotice(id).hasDismissed()))
+                {
+                    player.playSound(player.getLocation(), Sound.ENTITY_RABBIT_DEATH, 0.5f, 1.0f);
+                    return true;
+                }
+
+                MiniNotice miniNotice = noticePlayer.getNotice(id);
+
+                if(miniNotice == null)
+                {
+                    player.sendMessage("§cYou cannot dismiss a notice that's not directed to you.");
+                    return true;
+                }
+
+                miniNotice.setDismissed(true);
+
+                DatabaseEngine.getPool().execute(() ->
+                {
+                    api.updatePlayer(miniNotice);
+                    player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_YES, 0.5f, 1.0f);
+                    player.sendMessage("§aNotice dismissed.");
+                });
+            } catch(NoSuchElementException e) {
                 sender.sendMessage(help[1]);
-                return true;
             }
-
-            Notice notice = api.getNotice(id);
-            NoticePlayer noticePlayer = api.getPlayer(player.getUniqueId());
-
-            if(notice == null || noticePlayer == null || !api.getNotices().contains(notice) || (noticePlayer.getNotice(id) != null && noticePlayer.getNotice(id).hasDismissed()))
-            {
-                player.playSound(player.getLocation(), Sound.ENTITY_RABBIT_DEATH, 0.5f, 1.0f);
-                return true;
-            }
-
-            MiniNotice miniNotice = noticePlayer.getNotice(id);
-            miniNotice.setDismissed(true);
-
-            DatabaseEngine.getPool().execute(() ->
-            {
-                api.updatePlayer(miniNotice);
-                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_YES, 0.5f, 1.0f);
-            });
         } else if(args[0].equalsIgnoreCase("create")) {
-            if(!(sender.hasPermission(Permission.CMD_NOTICE_DELETE)))
+            if(!(sender instanceof Player))
             {
-                sender.sendMessage("§cYou don't have permission to execute this command.");
+                sender.sendMessage("§cOnly players can execute that command.");
                 return true;
             }
+
+            Player player = (Player) sender;
+
+            if(!(player.hasPermission(Permission.CMD_NOTICE_DELETE)))
+            {
+                player.sendMessage("§cYou don't have permission to execute this command.");
+                return true;
+            }
+
+            Notice notice = api.getCreation(player.getUniqueId());
+
+            if(notice != null)
+            {
+                player.sendMessage("§cYou're already creating a Notice, if you want to cancel this creation type CANCEL in the chat.");
+                return true;
+            }
+
+            if(args.length != 4)
+            {
+                player.sendMessage(help[2]);
+                return true;
+            }
+
+            String typeString = args[1];
+            Notice.Type type = typeString.equalsIgnoreCase("all") ? Notice.Type.ALL : (typeString.startsWith("PERM:") ? Notice.Type.PERM : Notice.Type.INDIVIDUAL);
+
+            Date expiration = Parse.getExpiryDate(args[2]);
+
+            if(expiration == null)
+            {
+                player.sendMessage("§cExpiration date " + args[2] + " couldn't be parsed.");
+                return true;
+            }
+
+            boolean dismissible = Parse.toBoolean(args[3]);
+
+            notice = new Notice(player.getUniqueId(), type, (expiration.getTime() / 1000), dismissible);
+
+            if(notice == null)
+            {
+                player.sendMessage("§cAn error occurred when initialising the Notice. Please try again later.");
+                return true;
+            }
+
+            StringBuilder sb;
+            if(notice.getType() == Notice.Type.INDIVIDUAL)
+            {
+                sb = new StringBuilder("§aPlayer recipients: §r");
+                String[] players = typeString.split(":")[1].split(",");
+
+                for(int i = 0; i < players.length; i++)
+                {
+                    OfflinePlayer offlinePlayer = Bukkit.getPlayer(players[i]);
+
+                    if(offlinePlayer != null && offlinePlayer.hasPlayedBefore())
+                    {
+                        notice.addUUIDRecipient(offlinePlayer.getUniqueId());
+                        sb.append("§a" + players[i] + ", ");
+                    }
+                }
+
+                player.sendMessage(sb.toString().replaceAll(", $", ""));
+            }
+
+            player.sendMessage("§aPlease type the notice message in chat. Type CANCEL to cancel the creation and SAVE to save.");
+            api.addCreation(player.getUniqueId(), notice);
         } else if(args[0].equalsIgnoreCase("delete")) {
             if(!(sender.hasPermission(Permission.CMD_NOTICE_DELETE)))
             {
                 sender.sendMessage("§cYou don't have permission to execute this command.");
                 return true;
             }
+
+            if(args.length == 1)
+            {
+                sender.sendMessage(help[3]);
+                return true;
+            }
+
+            int id = Parse.toInt(args[1]);
+
+            Notice notice = api.getNotice(id);
+
+            if(notice == null)
+            {
+                sender.sendMessage("§cNotice with the id §e" + id + " §cdoesn't exist or isn't active.");
+                return true;
+            }
+
+            DatabaseEngine.getPool().execute(() ->
+            {
+                api.deleteNotice(notice);
+                sender.sendMessage("§cDeleted notice #" + notice.getId());
+            });
         } else if(args[0].equalsIgnoreCase("info")) {
             if(!(sender.hasPermission(Permission.CMD_NOTICE_INFO)))
             {
@@ -106,34 +202,17 @@ public class NoticeCommand implements CommandExecutor
             if(args.length == 1)
             {
                 sender.sendMessage(Core.DIVIDER);
+                sender.sendMessage("§aDisplaying all active notices...");
                 api.getNotices().forEach(notice -> sender.sendMessage(" §7» §aNotice §e#" + notice.getId() + ", " + notice.getType().toString().toLowerCase() + "."));
                 sender.sendMessage(Core.DIVIDER);
             } else {
                 int id = Parse.toInt(args[1]);
 
-                Notice notice = api.getNotice(id);
-
-                if(notice == null)
-                {
+                try {
+                    ChatUtil.printNoticeInfo(sender, api.getNotice(id));
+                } catch(NoSuchElementException e) {
                     sender.sendMessage("§cNotice with the id §e" + id + " §cdoesn't exist or isn't active.");
-                    return true;
                 }
-
-                sender.sendMessage(Core.DIVIDER);
-                sender.sendMessage("§aDisplaying data for notice §e#" + notice.getId() + "§a.");
-                sender.sendMessage(" §7» §6Type: §e" + notice.getType().toString().toLowerCase());
-
-                OfflinePlayer op = Bukkit.getOfflinePlayer(notice.getCreator());
-                sender.sendMessage(" §7» §6Creator: §e" + (op != null && op.hasPlayedBefore() && op.getName() != null ? op.getName() : notice.getCreator().toString()));
-                sender.sendMessage(" §7» §6UUID recipients: §e" + (notice.getType() == Notice.Type.ALL ? "Anyone" : ""));
-
-                if(notice.getType() == Notice.Type.INDIVIDUAL)
-                    notice.getUUIDRecipients().forEach(uuid -> {
-                        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(notice.getCreator());
-                        sender.sendMessage("   §7• §e" + (offlinePlayer != null && offlinePlayer.hasPlayedBefore() && offlinePlayer.getName() != null ? offlinePlayer.getName() : notice.getCreator().toString()));
-                    });
-
-                sender.sendMessage(Core.DIVIDER);
             }
         } else help(sender);
 

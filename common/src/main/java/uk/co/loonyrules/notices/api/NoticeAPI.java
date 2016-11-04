@@ -2,16 +2,15 @@ package uk.co.loonyrules.notices.api;
 
 import uk.co.loonyrules.notices.api.events.NoticeAddEvent;
 import uk.co.loonyrules.notices.api.events.NoticeRemoveEvent;
+import uk.co.loonyrules.notices.api.events.NoticeSaveEvent;
 import uk.co.loonyrules.notices.api.events.NoticeUpdateEvent;
 import uk.co.loonyrules.notices.api.hooks.EventManager;
 import uk.co.loonyrules.notices.api.util.Callback;
 import uk.co.loonyrules.notices.core.Core;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.Collection;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -23,6 +22,7 @@ public class NoticeAPI
     private final Core core;
     private final ConcurrentMap<Integer, Notice> notices = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, NoticePlayer> player = new ConcurrentHashMap<>();
+    private final ConcurrentMap<UUID, Notice> creation = new ConcurrentHashMap<>();
     private final EventManager eventManager;
 
     public NoticeAPI(Core core)
@@ -34,6 +34,21 @@ public class NoticeAPI
     public Core getCore()
     {
         return core;
+    }
+
+    public Notice getCreation(UUID uuid)
+    {
+        return creation.get(uuid);
+    }
+
+    public void removeCreation(UUID uuid)
+    {
+        creation.remove(uuid);
+    }
+
+    public void addCreation(UUID uuid, Notice notice)
+    {
+        creation.put(uuid, notice);
     }
 
     public NoticePlayer getPlayer(UUID uuid)
@@ -160,7 +175,7 @@ public class NoticeAPI
         ).collect(Collectors.toList());
     }
 
-    public Notice getNotice(int id)
+    public Notice getNotice(int id) throws NoSuchElementException
     {
         return getNotices().stream().filter(notice -> notice.getId() == id).findFirst().get();
     }
@@ -187,6 +202,118 @@ public class NoticeAPI
 
         notices.remove(notice.getId());
         return notice;
+    }
+
+    public Notice saveNotice(Notice notice)
+    {
+        NoticeSaveEvent event = new NoticeSaveEvent(this, notice);
+        eventManager.handle(event);
+
+        if(event.isCancelled())
+            return null;
+
+        Connection connection = null;
+        PreparedStatement preparedStatement = null;
+        ResultSet resultSet = null;
+
+        String QUERY = "SELECT * FROM `notices` WHERE id=?";
+        String UPDATE = "UPDATE `notices` SET views=?, messages=?, uuidRecipients=?, type=?, expiration=?, dismissible=? WHERE id=? AND creator=?";
+        String INSERT = "INSERT INTO `notices` (`views`, `creator`, `messages`, `uuidRecipients`, `type`, `expiration`, `dismissible`) VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        try {
+            connection = core.getDatabaseEngine().getHikariCP().getConnection();
+
+            preparedStatement = connection.prepareStatement(QUERY);
+            preparedStatement.setInt(1, notice.getId());
+            preparedStatement.execute();
+
+            resultSet = preparedStatement.getResultSet();
+
+            if(resultSet.next())
+            {
+                // update
+                preparedStatement = connection.prepareStatement(UPDATE);
+                preparedStatement.setInt(1, notice.getViews());
+                preparedStatement.setString(2, notice.getMessages().toString());
+                preparedStatement.setString(3, notice.getUUIDRecipients().toString());
+                preparedStatement.setString(4, notice.getType().toString());
+                preparedStatement.setLong(5, notice.getExpiration());
+                preparedStatement.setInt(6, notice.isDismissible() ? 1 : 0);
+                preparedStatement.setInt(7, notice.getId());
+                preparedStatement.setString(8, notice.getCreator().toString());
+                preparedStatement.execute();
+
+                notice = updateNotice(notice);
+            } else {
+                // insert
+                preparedStatement = connection.prepareStatement(INSERT);
+                preparedStatement.setInt(1, notice.getViews());
+                preparedStatement.setString(2, notice.getCreator().toString());
+                preparedStatement.setString(3, notice.getMessages().toString());
+                preparedStatement.setString(4, notice.getUUIDRecipients().toString());
+                preparedStatement.setString(5, notice.getType().toString());
+                preparedStatement.setLong(6, notice.getExpiration());
+                preparedStatement.setInt(7, notice.isDismissible() ? 1 : 0);
+                preparedStatement.execute();
+
+                preparedStatement = connection.prepareStatement("SELECT LAST_INSERT_ID();");
+                preparedStatement.execute();
+
+                resultSet = preparedStatement.getResultSet();
+
+                if(resultSet.next())
+                    notice.setId(resultSet.getInt(1));
+
+                addNotice(notice);
+            }
+        } catch(SQLException e) {
+            System.out.println(Core.PREFIX + ": Error when inserting/updating Notice to the database.");
+            e.printStackTrace();
+        } finally {
+            try {
+                if(connection != null) connection.close();
+                if(preparedStatement != null) preparedStatement.close();
+                if(resultSet != null) resultSet.close();
+            } catch(SQLException e) {
+                System.out.println(Core.PREFIX + ": Error when closing connections.");
+                e.printStackTrace();
+            }
+        }
+
+        return notice;
+    }
+
+    public void deleteNotice(Notice notice)
+    {
+        Connection connection = null;
+        PreparedStatement preparedStatement = null;
+        ResultSet resultSet = null;
+        String data = "DELETE FROM `notices` WHERE id=?;";
+        String udv = "DELETE FROM `notices_udv` WHERE notice_id=?";
+
+        try {
+            connection = core.getDatabaseEngine().getHikariCP().getConnection();
+
+            preparedStatement = connection.prepareStatement(data);
+            preparedStatement.setInt(1, notice.getId());
+            preparedStatement.execute();
+
+            preparedStatement = connection.prepareStatement(udv);
+            preparedStatement.setInt(1, notice.getId());
+            preparedStatement.execute();
+        } catch(SQLException e) {
+            System.out.println(Core.PREFIX + ": Error when deleting notice from Database.");
+            e.printStackTrace();
+        } finally {
+            try {
+                if(connection != null) connection.close();
+                if(preparedStatement != null) preparedStatement.close();
+                if(resultSet != null) resultSet.close();
+            } catch(SQLException e) {
+                System.out.println(Core.PREFIX + ": Error when closing connections.");
+                e.printStackTrace();
+            }
+        }
     }
 
     public Notice updateNotice(Notice notice)

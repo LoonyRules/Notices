@@ -1,15 +1,8 @@
-package uk.co.loonyrules.notices.bukkit.utils;
+package uk.co.loonyrules.notices.bungee.util;
 
+import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.*;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.command.CommandSender;
-import uk.co.loonyrules.notices.api.Notice;
-import uk.co.loonyrules.notices.api.util.Parse;
-import uk.co.loonyrules.notices.core.Core;
 
-import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -75,23 +68,4 @@ public class ChatUtil
         return base;
     }
 
-    public static void printNoticeInfo(CommandSender sender, Notice notice)
-    {
-        sender.sendMessage(Core.DIVIDER);
-        sender.sendMessage("§aDisplaying data for notice §e#" + notice.getId() + "§a.");
-        sender.sendMessage(" §7» §6Type: §e" + notice.getType().toString().toLowerCase());
-
-        OfflinePlayer op = Bukkit.getOfflinePlayer(notice.getCreator());
-        sender.sendMessage(" §7» §6Creator: §e" + (op != null && op.hasPlayedBefore() && op.getName() != null ? op.getName() : notice.getCreator().toString()));
-        sender.sendMessage(" §7» §6Expiration: §e" + new Date((notice.getExpiration() * 1000)).toLocaleString() + " (" + Parse.dateDiff(System.currentTimeMillis(), (notice.getExpiration() * 1000)) + ")");
-        sender.sendMessage(" §7» §6UUID recipients: §e" + (notice.getType() == Notice.Type.ALL ? "Anyone" : ""));
-
-        if(notice.getType() == Notice.Type.INDIVIDUAL)
-            notice.getUUIDRecipients().forEach(uuid -> {
-                OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(notice.getCreator());
-                sender.sendMessage("   §7• §e" + (offlinePlayer != null && offlinePlayer.hasPlayedBefore() && offlinePlayer.getName() != null ? offlinePlayer.getName() : notice.getCreator().toString()));
-            });
-
-        sender.sendMessage(Core.DIVIDER);
-    }
 }

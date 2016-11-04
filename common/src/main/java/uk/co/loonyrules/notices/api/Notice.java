@@ -1,7 +1,5 @@
 package uk.co.loonyrules.notices.api;
 
-import uk.co.loonyrules.notices.core.Core;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -59,7 +57,7 @@ public class Notice
         this.creator = UUID.fromString(resultSet.getString("creator"));
 
         String rawMessages = resultSet.getString("messages");
-        this.messages = Arrays.asList(rawMessages.substring(1, rawMessages.length() -1).split(", "));
+        this.messages = new ArrayList<>(Arrays.asList(rawMessages.substring(1, rawMessages.length() -1).split(", ")));
 
         String rawUR = resultSet.getString("uuidRecipients");
         if(!(rawUR.isEmpty() || rawUR.length() == 0 || rawUR.equals("[]")))
@@ -73,8 +71,7 @@ public class Notice
     /**
      *
      * Initialise a new Notice instance, this does not register the Notice.
-     *
-     * @param creator is who made this Notice.
+     *  @param creator is who made this Notice.
      * @param expiration is when the Notice expires.
      * @param dismissible whether or not the Notice is dismissible.
      * @param messages a String[] (String...) of messages to display.
@@ -100,7 +97,7 @@ public class Notice
         this.type = type;
         this.expiration = expiration;
         this.dismissible = dismissible;
-        this.messages = Arrays.asList(messages);
+        this.messages = new ArrayList<>(Arrays.asList(messages));
     }
 
     /**
@@ -110,6 +107,11 @@ public class Notice
     public int getId()
     {
         return id;
+    }
+
+    public void setId(int id)
+    {
+        this.id = id;
     }
 
     /**
@@ -180,6 +182,26 @@ public class Notice
         views += 1;
     }
 
+    public void addMessage(String message)
+    {
+        messages.add(message);
+    }
+
+    public void removeMessage(int id)
+    {
+        messages.remove(id);
+    }
+
+    public void addUUIDRecipient(UUID uniqueId)
+    {
+        uuidRecipients.add(uniqueId);
+    }
+
+    public void removeUUIDRecipient(UUID uniqueId)
+    {
+        uuidRecipients.remove(uniqueId);
+    }
+
     /**
      * Notice$Type
      */
@@ -203,7 +225,7 @@ public class Notice
         /**
          * Target is a specific rank group.
          */
-        RANK
+        PERM
     }
 
 }
