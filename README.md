@@ -3,7 +3,7 @@ A Bukkit/BungeeCord notification system. Making life easier one notification at 
 
 ### Downloads
 
-* Bukkit - https://www.spigotmc.org/resources/notices.31290/
+* Bukkit - https://www.spigotmc.org/resources/dismissible-notices.31290/
 * BungeeCord - Coming Soon
 
 ### Documentation
