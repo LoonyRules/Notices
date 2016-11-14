@@ -4,7 +4,7 @@
   <groupId>uk.co.loonyrules.notices</groupId>
   <artifactId>bukkit</artifactId>
   <name>Notices-Bukkit</name>
-  <version>1.0</version>
+  <version>1.1</version>
   <build>
     <defaultGoal>clean install</defaultGoal>
     <resources>
@@ -39,13 +39,6 @@
             <goals>
               <goal>shade</goal>
             </goals>
-            <configuration>
-              <artifactSet>
-                <includes>
-                  <include>uk.co.loonyrules.notices:core</include>
-                </includes>
-              </artifactSet>
-            </configuration>
           </execution>
         </executions>
       </plugin>

@@ -6,7 +6,7 @@
 
     <groupId>uk.co.loonyrules.notices</groupId>
     <artifactId>bukkit</artifactId>
-    <version>1.0</version>
+    <version>1.1</version>
 
     <name>Notices-Bukkit</name>
     <packaging>jar</packaging>
@@ -83,13 +83,6 @@
                         <goals>
                             <goal>shade</goal>
                         </goals>
-                        <configuration>
-                            <artifactSet>
-                                <includes>
-                                    <include>uk.co.loonyrules.notices:core</include>
-                                </includes>
-                            </artifactSet>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>

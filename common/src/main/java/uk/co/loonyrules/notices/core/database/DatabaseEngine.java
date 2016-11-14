@@ -47,8 +47,8 @@ public class DatabaseEngine
         hikariCP.addDataSourceProperty("user", username);
         hikariCP.addDataSourceProperty("password", password);
 
-        pool.execute(() ->
-        {
+        /*pool.execute(() ->
+        {*/
             Connection connection = null;
             PreparedStatement preparedStatement = null;
             ResultSet resultSet = null;
@@ -78,7 +78,7 @@ public class DatabaseEngine
                     e.printStackTrace();
                 }
             }
-        });
+        //});
     }
 
     public HikariDataSource getHikariCP()
