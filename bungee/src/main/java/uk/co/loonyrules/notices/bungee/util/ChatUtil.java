@@ -1,8 +1,15 @@
 package uk.co.loonyrules.notices.bungee.util;
 
 import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.*;
+import uk.co.loonyrules.notices.api.Notice;
+import uk.co.loonyrules.notices.api.util.Parse;
+import uk.co.loonyrules.notices.bungee.Notices;
+import uk.co.loonyrules.notices.bungee.OfflinePlayer;
+import uk.co.loonyrules.notices.core.Core;
 
+import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -66,6 +73,36 @@ public class ChatUtil
         base.addExtra(endtc);
 
         return base;
+    }
+
+    public static void printNoticeInfo(CommandSender sender, Notice notice)
+    {
+        sender.sendMessage(Core.DIVIDER);
+        sender.sendMessage("§aDisplaying data for notice §e#" + notice.getId() + "§a.");
+        sender.sendMessage(" §7» §6Type: §e" + notice.getType().toString().toLowerCase());
+
+        OfflinePlayer op = Notices.getInstance().getOfflinePlayer(sender.getName());
+        sender.sendMessage(" §7» §6Creator: §e" + (op != null ? op.getLastName() : notice.getCreator().toString()));
+        sender.sendMessage(" §7» §6Expiration: §e" + new Date((notice.getExpiration() * 1000)).toLocaleString() + " (" + Parse.dateDiff(System.currentTimeMillis(), (notice.getExpiration() * 1000)) + ")");
+
+        if(notice.getType() == Notice.Type.INDIVIDUAL)
+        {
+            sender.sendMessage(" §7» §6UUID recipients: §e" + (notice.getType() == Notice.Type.ALL ? "Anyone" : ""));
+
+            if(notice.getType() == Notice.Type.INDIVIDUAL)
+                notice.getUUIDRecipients().forEach(uuid -> {
+                    OfflinePlayer offlinePlayer = Notices.getInstance().getOfflinePlayer(notice.getCreator());
+                    sender.sendMessage("   §7• §e" + (offlinePlayer != null  ? offlinePlayer.getLastName() : notice.getCreator().toString()));
+                });
+
+        } else if(notice.getType() == Notice.Type.PERM)
+            sender.sendMessage(" §7» §6Permission: §e" + notice.getPerm());
+        else if(notice.getType() == Notice.Type.SERVER) {
+            sender.sendMessage(" §7» §6Target servers:");
+            notice.getServers().forEach(server -> sender.sendMessage("   §7• §e" + server));
+        }
+
+        sender.sendMessage(Core.DIVIDER);
     }
 
 }

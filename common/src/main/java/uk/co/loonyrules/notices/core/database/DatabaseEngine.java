@@ -47,38 +47,33 @@ public class DatabaseEngine
         hikariCP.addDataSourceProperty("user", username);
         hikariCP.addDataSourceProperty("password", password);
 
-        /*pool.execute(() ->
-        {*/
-            Connection connection = null;
-            PreparedStatement preparedStatement = null;
-            ResultSet resultSet = null;
-            String query = "CREATE TABLE IF NOT EXISTS `notices` (`id` int(11) NOT NULL AUTO_INCREMENT,`views` int(11) NOT NULL,`creator` varchar(36) NOT NULL,`messages` longtext NOT NULL,`uuidRecipients` longtext NOT NULL,`perm` varchar(32) NOT NULL,`type` text NOT NULL,`expiration` bigint(20) NOT NULL,`dismissible` int(1) NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=latin1";
+        Connection connection = null;
+        PreparedStatement preparedStatement = null;
+        String query = "CREATE TABLE IF NOT EXISTS `notices` (`id` int(11) NOT NULL AUTO_INCREMENT,`views` int(11) NOT NULL,`creator` varchar(36) NOT NULL,`messages` longtext NOT NULL,`uuidRecipients` longtext NOT NULL,`perm` varchar(32) NOT NULL,`servers` longtext NOT NULL,`type` text NOT NULL,`expiration` bigint(20) NOT NULL,`dismissible` int(1) NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=latin1";
 
+        try {
+            connection = hikariCP.getConnection();
+
+            preparedStatement = connection.prepareStatement(query);
+            preparedStatement.execute();
+
+            query = "CREATE TABLE IF NOT EXISTS `notices_udv` (`id` int(11) NOT NULL AUTO_INCREMENT,`notice_id` int(11) NOT NULL,`uuid` varchar(36) NOT NULL,`seen` int(1) NOT NULL,`dismissed` int(1) NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=latin1 ";
+            preparedStatement = connection.prepareStatement(query);
+            preparedStatement.execute();
+        } catch(SQLException e) {
+            System.out.println(Core.PREFIX + ": Error when creating tables.");
+            e.printStackTrace();
+        } finally {
             try {
-                connection = hikariCP.getConnection();
+                if(connection != null) connection.close();
+                if(preparedStatement != null) preparedStatement.close();
 
-                preparedStatement = connection.prepareStatement(query);
-                preparedStatement.execute();
-
-                query = "CREATE TABLE IF NOT EXISTS `notices_udv` (`id` int(11) NOT NULL AUTO_INCREMENT,`notice_id` int(11) NOT NULL,`uuid` varchar(36) NOT NULL,`seen` int(1) NOT NULL,`dismissed` int(1) NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=latin1 ";
-                preparedStatement = connection.prepareStatement(query);
-                preparedStatement.execute();
+                System.out.println(Core.PREFIX + ": MySQL setup correctly.");
             } catch(SQLException e) {
-                System.out.println(Core.PREFIX + ": Error when creating tables.");
+                System.out.println(Core.PREFIX + ": Error when closing connections.");
                 e.printStackTrace();
-            } finally {
-                try {
-                    if(connection != null) connection.close();
-                    if(preparedStatement != null) preparedStatement.close();
-                    if(resultSet != null) resultSet.close();
-
-                    System.out.println(Core.PREFIX + ": MySQL setup correctly.");
-                } catch(SQLException e) {
-                    System.out.println(Core.PREFIX + ": Error when closing connections.");
-                    e.printStackTrace();
-                }
             }
-        //});
+        }
     }
 
     public HikariDataSource getHikariCP()

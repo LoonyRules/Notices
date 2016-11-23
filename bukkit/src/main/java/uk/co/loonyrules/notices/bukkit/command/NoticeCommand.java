@@ -101,7 +101,7 @@ public class NoticeCommand implements CommandExecutor
 
             Player player = (Player) sender;
 
-            if(!(player.hasPermission(Permission.CMD_NOTICE_DELETE)))
+            if(!(player.hasPermission(Permission.CMD_NOTICE_CREATE)))
             {
                 player.sendMessage("§cYou don't have permission to execute this command.");
                 return true;
@@ -122,7 +122,7 @@ public class NoticeCommand implements CommandExecutor
             }
 
             String typeString = args[1];
-            Notice.Type type = typeString.equalsIgnoreCase("all") ? Notice.Type.ALL : (typeString.startsWith("PERM:") ? Notice.Type.PERM : Notice.Type.INDIVIDUAL);
+            Notice.Type type = typeString.equalsIgnoreCase("all") ? Notice.Type.ALL : (typeString.toLowerCase().startsWith("perm:") ? Notice.Type.PERM : Notice.Type.INDIVIDUAL);
 
             Date expiration = Parse.getExpiryDate(args[2]);
 

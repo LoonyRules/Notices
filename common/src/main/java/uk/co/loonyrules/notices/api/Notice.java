@@ -36,6 +36,11 @@ public class Notice
     private List<UUID> uuidRecipients = new ArrayList<>();
 
     /**
+     * List of servers
+     */
+    private List<String> servers = new ArrayList<>();
+
+    /**
      * Permission if Type.PERM
      */
     private String perm = "";
@@ -67,6 +72,10 @@ public class Notice
         String rawUR = resultSet.getString("uuidRecipients");
         if(!(rawUR.isEmpty() || rawUR.length() == 0 || rawUR.equals("[]")))
             Arrays.asList(rawUR.substring(1, rawUR.length() -1).split(", ")).forEach(uuid -> uuidRecipients.add(UUID.fromString(uuid)));
+
+        String rawSE = resultSet.getString("servers");
+        if(!(rawSE.isEmpty() || rawSE.length() == 0 || rawSE.equals("[]")))
+            Arrays.asList(rawSE.substring(1, rawSE.length() -1).split(", ")).forEach(servers::add);
 
         this.perm = resultSet.getString("perm");
         this.type = Type.valueOf(resultSet.getString("type"));
@@ -216,6 +225,16 @@ public class Notice
     public void removeUUIDRecipient(UUID uniqueId)
     {
         uuidRecipients.remove(uniqueId);
+    }
+
+    public List<String> getServers()
+    {
+        return servers;
+    }
+
+    public void addServer(String name)
+    {
+        servers.add(name);
     }
 
     /**

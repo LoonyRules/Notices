@@ -229,8 +229,8 @@ public class NoticeAPI
         ResultSet resultSet = null;
 
         String QUERY = "SELECT * FROM `notices` WHERE id=?";
-        String UPDATE = "UPDATE `notices` SET views=?, messages=?, uuidRecipients=?, perm=?, type=?, expiration=?, dismissible=? WHERE id=? AND creator=?";
-        String INSERT = "INSERT INTO `notices` (`views`, `creator`, `messages`, `uuidRecipients`, `perm`, `type`, `expiration`, `dismissible`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String UPDATE = "UPDATE `notices` SET views=?, messages=?, uuidRecipients=?, perm=?, servers=?, type=?, expiration=?, dismissible=? WHERE id=? AND creator=?";
+        String INSERT = "INSERT INTO `notices` (`views`, `creator`, `messages`, `uuidRecipients`, `perm`, `servers`, `type`, `expiration`, `dismissible`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try {
             connection = core.getDatabaseEngine().getHikariCP().getConnection();
@@ -249,11 +249,12 @@ public class NoticeAPI
                 preparedStatement.setString(2, notice.getMessages().toString());
                 preparedStatement.setString(3, notice.getUUIDRecipients().toString());
                 preparedStatement.setString(4, notice.getPerm());
-                preparedStatement.setString(5, notice.getType().toString());
-                preparedStatement.setLong(6, notice.getExpiration());
-                preparedStatement.setInt(7, notice.isDismissible() ? 1 : 0);
-                preparedStatement.setInt(8, notice.getId());
-                preparedStatement.setString(9, notice.getCreator().toString());
+                preparedStatement.setString(5, notice.getServers().toString());
+                preparedStatement.setString(6, notice.getType().toString());
+                preparedStatement.setLong(7, notice.getExpiration());
+                preparedStatement.setInt(8, notice.isDismissible() ? 1 : 0);
+                preparedStatement.setInt(9, notice.getId());
+                preparedStatement.setString(10, notice.getCreator().toString());
                 preparedStatement.execute();
 
                 notice = updateNotice(notice);
@@ -265,9 +266,10 @@ public class NoticeAPI
                 preparedStatement.setString(3, notice.getMessages().toString());
                 preparedStatement.setString(4, notice.getUUIDRecipients().toString());
                 preparedStatement.setString(5, notice.getPerm());
-                preparedStatement.setString(6, notice.getType().toString());
-                preparedStatement.setLong(7, notice.getExpiration());
-                preparedStatement.setInt(8, notice.isDismissible() ? 1 : 0);
+                preparedStatement.setString(6, notice.getServers().toString());
+                preparedStatement.setString(7, notice.getType().toString());
+                preparedStatement.setLong(8, notice.getExpiration());
+                preparedStatement.setInt(9, notice.isDismissible() ? 1 : 0);
                 preparedStatement.execute();
 
                 preparedStatement = connection.prepareStatement("SELECT LAST_INSERT_ID();");
@@ -301,7 +303,7 @@ public class NoticeAPI
     {
         Connection connection = null;
         PreparedStatement preparedStatement = null;
-        ResultSet resultSet = null;
+
         String data = "DELETE FROM `notices` WHERE id=?;";
         String udv = "DELETE FROM `notices_udv` WHERE notice_id=?";
 
@@ -322,12 +324,13 @@ public class NoticeAPI
             try {
                 if(connection != null) connection.close();
                 if(preparedStatement != null) preparedStatement.close();
-                if(resultSet != null) resultSet.close();
             } catch(SQLException e) {
                 System.out.println(Core.PREFIX + ": Error when closing connections.");
                 e.printStackTrace();
             }
         }
+
+        notices.remove(notice.getId());
     }
 
     public Notice updateNotice(Notice notice)

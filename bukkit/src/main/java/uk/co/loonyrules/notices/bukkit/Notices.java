@@ -7,6 +7,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -33,7 +34,6 @@ public class Notices extends JavaPlugin implements Core, Runnable, Listener
 
     private PermListener permListener;
     private DatabaseEngine databaseEngine;
-    private String serverName;
 
     @Override
     public void onEnable()
@@ -48,7 +48,6 @@ public class Notices extends JavaPlugin implements Core, Runnable, Listener
 
         FileConfiguration config = getConfig();
 
-        this.serverName = config.getString("general.server-name");
         this.databaseEngine = new DatabaseEngine(config.getString("mysql.host"), config.getInt("mysql.port"), config.getString("mysql.database"), config.getString("mysql.username"), config.getString("mysql.password"));
 
         api = new NoticeAPI(this);
@@ -65,7 +64,7 @@ public class Notices extends JavaPlugin implements Core, Runnable, Listener
     @Override
     public void onDisable()
     {
-
+        api.removeEventListener(permListener);
     }
 
     @Override

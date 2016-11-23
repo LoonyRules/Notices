@@ -8,6 +8,7 @@ bin/
 /project/target
 /common/target
 /bukkit/target
+/bungee/target
 /bukkit-example/target
 /target
 tmp/
