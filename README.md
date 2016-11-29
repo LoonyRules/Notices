@@ -4,7 +4,7 @@ Send a dismissible notice to specific players on your server/proxy.
 ### Downloads
 
 * Bukkit - https://www.spigotmc.org/resources/dismissible-notices.31290/
-* BungeeCord - Coming Soon
+* BungeeCord - https://www.spigotmc.org/resources/dismissible-notices.32197/
 
 ### Documentation
 
