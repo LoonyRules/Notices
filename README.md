@@ -1,3 +1,5 @@
+Please be aware that this code isn't the most efficient or reliable, I personally hate it and I will be recoding the project soon.
+
 # Notices
 Send a dismissible notice to specific players on your server/proxy.
 
